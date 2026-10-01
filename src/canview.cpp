@@ -98,20 +98,23 @@ void canview::contentsMousePressEvent (QMouseEvent * e)
     cenY = e->y ();
     //qDebug("tikX:%d tikY:%d",cenX,cenY);
     ///Z index(dimension taken from layers up left corner.)
-    CListViewItem *tmpListViewItem=(CListViewItem*)dad->dad->tl->timeLineListbox->selectedItem();
-    if(dad->dad->tl->timeLineListbox->selectedItem()!=NULL)
-    {
-      z=-1*tmpListViewItem->m_Row;
-    }
-    else
-    {
-      z=-1;
+    CTimeLine *timeLine = dad && dad->dad ? dad->dad->tl : 0;
+    CListViewItem *tmpListViewItem = timeLine
+        ? (CListViewItem*)timeLine->timeLineListbox->selectedItem() : 0;
+    int animX = 0;
+    z = -1;
+
+    if (tmpListViewItem && timeLine && timeLine->layerFrames) {
+      const int layerIndex = tmpListViewItem->m_Row - 1;
+      if (layerIndex >= 0 && layerIndex < timeLine->layerFrames->count()) {
+        CTimeLineDataStructure *layer = timeLine->layerFrames->at(layerIndex);
+        if (layer && layer->frames && !layer->frames->isEmpty() && layer->frames->last()) {
+          z = -1 * tmpListViewItem->m_Row;
+          animX = layer->frames->last()->tableItemNo;
+        }
+      }
     }
     ///Animation X I mean frame number.
-    //CTimeLineDataStructure* sikecemyaw=(CTimeLineDataStructure *)dad->dad->tl->layerFrames->at(tmpListViewItem->m_Row);
-    //qDebug("%d",dad->dad->tl->layerFrames->at(0)->name);
-    //qDebug("framelistesi countu: %d",dad->dad->tl->layerFrames->at(tmpListViewItem->m_Row)->name);
-    int animX=dad->dad->tl->layerFrames->at(tmpListViewItem->m_Row-1)->frames->last ()->tableItemNo;//currentFrameLabel->kutuNo;
     //		qDebug("X: %d",animX);
     switch (dad->defObjID)
     {
@@ -789,7 +792,8 @@ void canview::contentsMouseReleaseEvent (QMouseEvent * e)
     break;
   }
   canvas ()->update ();
-  dad->dad->tl->tableRefresh();
+  if (dad && dad->dad && dad->dad->tl)
+    dad->dad->tl->tableRefresh();
 }
 
 

@@ -2556,8 +2556,15 @@ void F4lmApp::slotfileImport ()
 void F4lmApp::slotfileImportToLibrary () {}
 void F4lmApp::slotfileExportMovie ()
 {
-  /// @todo selected should be exported not first change line below.
-  pDocList->first()->slotfileExportMovie();
+  F4lmDoc *doc = 0;
+  F4lmView *view = slotCurrentView();
+  if (view)
+    doc = view->getDocument();
+  else if (pDocList && !pDocList->isEmpty())
+    doc = pDocList->first();
+
+  if (doc)
+    doc->slotfileExportMovie();
 }
 void F4lmApp::slotfileExportImage () {}
 void F4lmApp::slotfilePublishSetting () {}

@@ -2,7 +2,7 @@
 ** 
 **
 ** Created: Mon Jun 9 05:33:27 2003
-**     copyright            : (C) 2003 by zkan pakdil
+**     copyright            : (C) 2003 by ï¿½zkan pakdil
 **    email                : ozkanpakdil@users.sourceforge.net
 **
 ** 
@@ -406,23 +406,33 @@ void CTimeLine::slotTableVscrollmove (int mov)
  */
 void CTimeLine::slotLabelclick ()
 {
-//qDebug("slotLabelClick : %d",currentFrameLabel->kutuNo);
-    int ti = currentFrameLabel->kutuNo;
+    if (!timeLineTable || !currentFrameLabel || !timeLineRightTopLabel)
+        return;
+
+    const int previousFrame = currentFrameLabel->kutuNo;
+    const int selectedFrame = timeLineRightTopLabel->currentNo ();
+    const int columnCount = timeLineTable->columnCount ();
+    if (previousFrame < 1 || previousFrame > columnCount ||
+            selectedFrame < 1 || selectedFrame > columnCount)
+        return;
+
     for (int j = 0; j < layerNum; j++) {
-        CTableItem *tc = (CTableItem *) timeLineTable->item (j, ti - 1);
-        tc->layerChooser = false;
-        timeLineTable->updateCell (j, ti - 1);
+        CTableItem *item = (CTableItem *) timeLineTable->item (j, previousFrame - 1);
+        if (item) {
+            item->layerChooser = false;
+            timeLineTable->updateCell (j, previousFrame - 1);
+        }
     }
-    currentFrameLabel->setNo (timeLineRightTopLabel->currentNo ());
+
+    currentFrameLabel->setNo (selectedFrame);
     currentFrameLabel->update ();
 
     for (int i = 0; i < layerNum; i++) {
-        CTableItem * c = (CTableItem *) timeLineTable->item (i, timeLineRightTopLabel->currentNo () - 1);
-        if (c) {
-            c->layerChooser = true;
+        CTableItem *item = (CTableItem *) timeLineTable->item (i, selectedFrame - 1);
+        if (item) {
+            item->layerChooser = true;
+            timeLineTable->updateCell (i, selectedFrame - 1);
         }
-                //              else c->layerChooser=false;
-        timeLineTable->updateCell (i, timeLineRightTopLabel->currentNo () - 1);
     }
 }
 
@@ -531,9 +541,22 @@ void CTimeLine::tableRefresh ()
     }
 	bool layerChanged=false;
 	CListViewItem *tmpListViewItem=(CListViewItem*)timeLineListbox->selectedItem();
-	int animX=dad->tl->layerFrames->at(tmpListViewItem->m_Row-1)->frames->last ()->tableItemNo;
+	if (!tmpListViewItem || !dad)
+		return;
+
+	const int layerIndex = tmpListViewItem->m_Row - 1;
+	if (layerIndex < 0 || layerIndex >= layerFrames->count())
+		return;
+
+	CTimeLineDataStructure *selectedLayer = layerFrames->at(layerIndex);
+	F4lmView *currentView = dad->slotCurrentView();
+	if (!selectedLayer || !selectedLayer->frames || selectedLayer->frames->isEmpty() ||
+		!selectedLayer->frames->last() || !currentView || !currentView->mainCanvas)
+		return;
+
+	int animX=selectedLayer->frames->last ()->tableItemNo;
 	int z=-1*tmpListViewItem->m_Row;
-		QCanvasItemList l=dad->slotCurrentView()->mainCanvas->allItems();
+		QCanvasItemList l=currentView->mainCanvas->allItems();
 		for (QCanvasItemList::Iterator it = l.begin (); it != l.end ();++it) {
 					if ((*it)->rtti () == 666 || (*it)->rtti () == 667) {		//if user clicked on def. scene rect. then dont select it.
 							continue;

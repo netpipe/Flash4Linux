@@ -2,7 +2,7 @@
               clabel.cpp  -  description
                  -------------------
     begin                : Mon Jun 9 2003
-    copyright            : (C) 2003 by özkan pakdil
+    copyright            : (C) 2003 by ï¿½zkan pakdil
     email                : ozkanpakdil@users.sourceforge.net
  ***************************************************************************/
 
@@ -151,51 +151,57 @@ void CLabel::paintEvent (QPaintEvent *)
         p.setFont (f);
         p.drawText (5, height () - 5, QString::number (width ()));
     }
-    valueChanged ();
 }
 
 void CLabel::mousePressEvent (QMouseEvent * e)
 {
-        //cout<<e->x()<<endl;    setFocusPolicy(Qt::StrongFocus);
-        // qDebug(QString::number(e->x()));
+    if (e->button () != Qt::LeftButton || nameT != "timeLineRightTopLabel" ||
+            !dad || !dad->dad || e->x () < 0 || e->x () >= width ())
+        return;
+
+    const int frame = e->x () / 8;
+    if (frame < 0 || frame >= dad->layerMaxColNum)
+        return;
+
+    leftClick = true;
+    leftClickX = static_cast<unsigned int> (e->x ());
+    kutuNo = frame + 1;
+    update ();
+
+    F4lmView *currentView = dad->dad->slotCurrentView ();
+    if (currentView)
+        currentView->slotShowCanvas (0, frame);
     valueChanged ();
-    if (e->button () == Qt::LeftButton)
-        if (nameT == "timeLineRightTopLabel") {
-            leftClick = true;
-            leftClickX = e->x ();
-            update ();
-            if (leftClickX / 8 < dad->layerMaxColNum)
-                dad->dad->slotCurrentView ()->slotShowCanvas (0, leftClickX / 8);
-                }			//cout<<"kut no"<<kutuNo<<endl;
 }
 
 void
 CLabel::mouseReleaseEvent (QMouseEvent * e)
 {
-        //cout<<e->x()<<endl;  setFocusPolicy(Qt::StrongFocus);  qDebug(QString::number(e->x()));
-    valueChanged ();
-    if (e->button () == Qt::LeftButton)
-        if (nameT == "timeLineRightTopLabel") {
-            leftClick = false;
-            /*if(e->x()/8<dad->layerMaxColNum) */
-            update ();
-        }
+    if (e->button () == Qt::LeftButton && nameT == "timeLineRightTopLabel") {
+        leftClick = false;
+        update ();
+    }
 }
 
 void CLabel::mouseMoveEvent (QMouseEvent * e)
 {
-        // cout<<endl;
-        // cout<<""<<e->x()<<endl;  setFocusPolicy(Qt::StrongFocus);  qDebug(QString::number(e->x()));
+    if (nameT != "timeLineRightTopLabel" || !leftClick ||
+            !(e->buttons () & Qt::LeftButton) || !dad || !dad->dad ||
+            e->x () < 0 || e->x () >= width ())
+        return;
+
+    const int frame = e->x () / 8;
+    if (frame < 0 || frame >= dad->layerMaxColNum)
+        return;
+
+    leftClickX = static_cast<unsigned int> (e->x ());
+    kutuNo = frame + 1;
+    update ();
+
+    F4lmView *currentView = dad->dad->slotCurrentView ();
+    if (currentView)
+        currentView->slotShowCanvas (0, frame);
     valueChanged ();
-    if (leftClick && !(e->x () > width ()) && !(e->x () < 0))
-        leftClickX = e->x ();
-        //qDebug("%d",dad->layerMaxColNum);
-        //cout<<parent()->parent()->parent()->name()<<endl;
-    if (nameT == "timeLineRightTopLabel"&& leftClickX / 8 < dad->layerMaxColNum) {
-        update ();
-        if (leftClickX / 8 < dad->layerMaxColNum)
-            dad->dad->slotCurrentView ()->slotShowCanvas (0, leftClickX / 8);
-    }
 }
 
 void CLabel::setText (QString cstr){

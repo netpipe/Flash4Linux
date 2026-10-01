@@ -2,7 +2,7 @@
               table.cpp  -  description
                  -------------------
     begin                : Sat Jun 7 2003
-    copyright            : (C) 2003 by özkan pakdil
+    copyright            : (C) 2003 by ï¿½zkan pakdil
     email                : ozkanpakdil@users.sourceforge.net
  ***************************************************************************/
 
@@ -27,6 +27,7 @@
 CTable::CTable (int numR, int numC, QWidget * parent, const char *name)
 :QTable (numR, numC, parent,name)
 {
+    LeftClick = false;
     setFocusPolicy (Qt::StrongFocus);
 
 
@@ -56,7 +57,9 @@ CTable::CTable (int numR, int numC, QWidget * parent, const char *name)
 
         //setGreyParts();
     dad = (CTimeLine *) parentWidget ()->parentWidget ()->parentWidget ();
-    setDragEnabled (true);
+    // Timeline drags scrub frames; Qt item dragging can enter a blocking native
+    // drag loop on macOS and leave the UI waiting indefinitely for mouse-up.
+    setDragEnabled (false);
     setMouseTracking (true);
         //setFocus();
 }
@@ -112,12 +115,17 @@ void CTable::contentsMousePressEvent (QMouseEvent * e)
 
 
     if (e->button () == Qt::LeftButton) {
-                //QPoint p=mapToGlobal (e->pos());
-                //      dad->timeLineRightTopLabel->mousePressEvent(e);
-        dad->dad->slotCurrentView ()->slotShowCanvas (currentRow (),currentColumn ());
+        const int row = currentRow ();
+        const int column = currentColumn ();
+        F4lmView *currentView = dad && dad->dad ? dad->dad->slotCurrentView () : 0;
+        if (currentView && row >= 0 && column >= 0)
+            currentView->slotShowCanvas (row, column);
+
         QPoint p = e->pos ();
         p.setX (dad->timeLineListbox->x () + 10);
-        dad->timeLineListbox->setSelected (dad->timeLineListbox->itemAt (p),true);
+        QListViewItem *item = dad->timeLineListbox->itemAt (p);
+        if (item)
+            dad->timeLineListbox->setSelected (item, true);
         LeftClick = true;
     }
 
@@ -149,16 +157,27 @@ void CTable::slotInsertFrame (){
 
 void CTable::contentsMouseReleaseEvent (QMouseEvent * e){
     QTable::contentsMouseReleaseEvent (e);
-    dad->timeLineRightTopLabel->mouseReleaseEvent (e);
+    if (dad && dad->timeLineRightTopLabel)
+        dad->timeLineRightTopLabel->mouseReleaseEvent (e);
     LeftClick = false;
 }
 
 void CTable::contentsMouseMoveEvent (QMouseEvent * e){
-    QTable::contentsMouseMoveEvent (e);
-    dad->timeLineRightTopLabel->mouseMoveEvent (e);
-    if (LeftClick) {
-        dad->dad->slotCurrentView ()->slotShowCanvas (currentRow (),currentColumn ());
+    if (!LeftClick || !(e->buttons () & Qt::LeftButton)) {
+        e->ignore ();
+        return;
     }
+
+    QTable::contentsMouseMoveEvent (e);
+
+    if (dad && dad->timeLineRightTopLabel)
+        dad->timeLineRightTopLabel->mouseMoveEvent (e);
+
+    const int row = currentRow ();
+    const int column = currentColumn ();
+    F4lmView *currentView = dad && dad->dad ? dad->dad->slotCurrentView () : 0;
+    if (currentView && row >= 0 && column >= 0)
+        currentView->slotShowCanvas (row, column);
 }
 
 void CTable::slotRemoveFrame (){

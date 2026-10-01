@@ -270,12 +270,12 @@ bool F4lmDoc::canCloseFrame (F4lmView * pFrame)
  */
 void F4lmDoc::slotfileExportMovie()
 {
-  F4lmView *view=pViewList->first();
-  CListViewItem *tmpListViewItem=(CListViewItem*)view->dad->tl->timeLineListbox->selectedItem();
-  int animX=view->dad->tl->layerFrames->at(tmpListViewItem->m_Row-1)->frames->last ()->tableItemNo;
-  int z=-1*tmpListViewItem->m_Row;
+  if (!pViewList || pViewList->isEmpty())
+    return;
 
-
+  F4lmView *view = pViewList->first();
+  if (!view || !view->dad || !view->dad->tl || !view->mainCanvas)
+    return;
 
   int xLower = 000;
   int yLower = 000;
@@ -313,7 +313,7 @@ void F4lmDoc::slotfileExportMovie()
       case QCanvasItem::Rtti_Ellipse:
         {
           CCanvasEllipse *oval=(CCanvasEllipse*)(*it);
-          if(oval->animationX>=i)continue;
+          if(oval->animationX>i)continue;
           FSShapeConstructor* path = ShapeConstructor(); //buundan circle cikar
           //path->COORDINATES_ARE_PIXELS = true;
           int width = oval->width();
@@ -344,7 +344,7 @@ void F4lmDoc::slotfileExportMovie()
         {
           CCanvasLine *line=(CCanvasLine*)(*it);
           //qDebug("frame %d",i);
-          if(line->animationX>=i)continue;
+          if(line->animationX>i)continue;
 
           int identifier = movie.newIdentifier();
 
@@ -393,7 +393,7 @@ void F4lmDoc::slotfileExportMovie()
         {
           CCanvasRectangle *rect=(CCanvasRectangle*)(*it);
           //qDebug("rect animx : %d colon numaramiz: %d",rect->animationX,i);
-          if(rect->animationX>=i)continue;
+          if(rect->animationX>i)continue;
 
           int identifier = movie.newIdentifier();
 
@@ -525,7 +525,7 @@ if ((status = imageGenerator->setImage((const unsigned char*)buffer.buffer().dat
       case QCanvasItem::Rtti_Text:
         {
           CCanvasText *canvasText=(CCanvasText*)(*it);
-          if(canvasText->animationX>=i)continue;
+          if(canvasText->animationX>i)continue;
           FSTextConstructor* textGenerator = TextConstructor();
           int status = TransformUtil::OK;
           proc = new QProcess(this);
@@ -657,12 +657,20 @@ if ((status = imageGenerator->setImage((const unsigned char*)buffer.buffer().dat
       }
     }
   }
+  QString fileName = QFileDialog::getSaveFileName(view,
+                                                   tr("Export Flash Movie"),
+                                                   QString(),
+                                                   tr("Flash Movie (*.swf)"));
+  if (fileName.isEmpty())
+    return;
+
+  if (QFileInfo(fileName).suffix().compare("swf", Qt::CaseInsensitive) != 0)
+    fileName += ".swf";
+
   try
   {
-    QString fileName = QFileDialog::getSaveFileName( );
-    QByteArray fileNameBytes = fileName.toLatin1();
+    QByteArray fileNameBytes = fileName.toUtf8();
     movie.encodeToFile(fileNameBytes.constData());
-
   }
   catch (FSException e)
   {
